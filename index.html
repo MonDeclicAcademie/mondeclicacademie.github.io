@@ -1067,7 +1067,9 @@ html.lamp-dim .lamp{opacity:.2}
             <label class="fchip"><input type="checkbox" name="matieres" value="Arabe"><span>Arabe</span></label>
             <label class="fchip"><input type="checkbox" name="matieres" value="Anglais"><span>Anglais</span></label>
             <label class="fchip"><input type="checkbox" name="matieres" value="Maths"><span>Maths</span></label>
+            <label class="fchip"><input type="checkbox" name="matieres" value="Autre" data-other="matieres_autre"><span>Autre matière</span></label>
           </div>
+          <div class="fother" data-for="matieres_autre" hidden><input type="text" name="matieres_autre" autocomplete="off" placeholder="Ex. : physique-chimie, SVT, philosophie…" aria-label="Autre matière, à préciser"></div>
           <p class="err">Choisissez au moins une matière.</p>
         </fieldset>
       </div>
@@ -1508,6 +1510,10 @@ const MESSAGE = "Bonjour, je vous écris au sujet de mon enfant. Voici ce que j'
     return sel;
   }
   function syncPicks() {
+    form.querySelectorAll("input[data-other]").forEach(function (o) {
+      const box = form.querySelector('.fother[data-for="' + o.dataset.other + '"]');
+      if (box) box.hidden = !o.checked;
+    });
     form.querySelectorAll(".fpick").forEach(function (box) {
       const sels = box.querySelectorAll("select"), add = form.querySelector('[data-add="' + box.dataset.name + '"]');
       if (add) add.hidden = sels.length >= sels[0].options.length - 1;
@@ -1521,6 +1527,11 @@ const MESSAGE = "Bonjour, je vous écris au sujet de mon enfant. Voici ce que j'
     if (del) { del.parentElement.remove(); syncPicks(); save(); }
   });
   form.addEventListener("change", function (e) {
+    if (e.target.dataset.other) {
+      syncPicks();
+      if (e.target.checked) { const t = form.querySelector('input[name="' + e.target.dataset.other + '"]'); if (t) setTimeout(function () { t.focus(); }, 60); }
+      return;
+    }
     if (!e.target.closest(".fpick")) return;
     syncPicks();
     if (e.target.value === "Autre") { const t = form.querySelector('input[name="' + e.target.name + '_autre"]'); if (t) setTimeout(function () { t.focus(); }, 60); }
@@ -1564,7 +1575,8 @@ const MESSAGE = "Bonjour, je vous écris au sujet de mon enfant. Voici ce que j'
 
   /* one comfort scale per chosen subject */
   function buildScales(keep) {
-    const subjects = read().matieres || [];
+    const d0 = read(), extra = (d0.matieres_autre || "").split(/,|;|\/|\set\s/).map(function (x) { return x.trim(); }).filter(Boolean);
+    const subjects = (d0.matieres || []).filter(function (x) { return x !== "Autre"; }).concat((d0.matieres || []).indexOf("Autre") > -1 ? extra : []);
     const list = subjects.length ? subjects : ["La matière concernée"];
     scalesBox.innerHTML = "";
     list.forEach(function (s) {
